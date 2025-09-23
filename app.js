@@ -33,7 +33,10 @@
     const analyticsView = document.getElementById("analytics");
     const rangeStart = document.getElementById("rangeStart");
     const rangeEnd = document.getElementById("rangeEnd");
-    const applyRange = document.getElementById("applyRange");
+    const btnRangeOpen = document.getElementById("btnRangeOpen");
+    const rangeSheet = document.getElementById("rangeSheet");
+    const rangeApply = document.getElementById("rangeApply");
+    const rangeCancel = document.getElementById("rangeCancel");
     const chartAmount = document.getElementById("chartAmount");
     const chartKm = document.getElementById("chartKm");
     const chartFuel = document.getElementById("chartFuel");
@@ -440,30 +443,47 @@ function openSheet(isEdit = false) {
                 lastFuel = { date: t.date, odo: t.km_reading||0 };
             }
         }
-        efficiencyList.innerHTML = segments.map(s => `<li>
-            <div><strong>${formatWeekdayDDMMYY(s.fromDate)} → ${formatWeekdayDDMMYY(s.toDate)}</strong></div>
-            <div class="trip-meta">${Math.round(s.km)} km • ${s.liters.toFixed(1)} l • ₹${Math.round(s.cost)}</div>
-            <div><strong>${s.efficiency.toFixed(1)} km/l</strong></div>
-        </li>`).join('');
+        efficiencyList.innerHTML = segments.map(s => {
+            const costPerKm = s.km > 0 ? (s.cost / s.km) : 0;
+            return `<li>
+                <div><strong>${formatWeekdayDDMMYY(s.fromDate)} → ${formatWeekdayDDMMYY(s.toDate)}</strong></div>
+                <div class="trip-meta">${Math.round(s.km)} km • ${s.liters.toFixed(1)} l • ₹${Math.round(s.cost)} • ₹/km ${costPerKm.toFixed(2)}</div>
+                <div><strong>${s.efficiency.toFixed(1)} km/l</strong></div>
+            </li>`;
+        }).join('');
     }
 
-    // custom range apply
-    if (applyRange) {
-        applyRange.addEventListener('click', () => {
-            const s = rangeStart.value; const e = rangeEnd.value;
-            if (!s || !e || s > e) { alert('Select a valid date range'); return; }
-            const trips = loadTrips();
-            const filtered = trips.filter(t => t.date >= s && t.date <= e);
-            const summary = summarize(filtered);
-            statDistance.textContent = formatKm(summary.distance);
-            statReceived.textContent = formatCurrency(summary.received);
-            statFuel.textContent = formatCurrency(summary.fuel);
-            statProfit.textContent = formatCurrency(summary.profit);
-            statProfitPerKm.textContent = formatCurrency(Math.round(summary.ppk));
-            if (statFuelEst) statFuelEst.textContent = `${(summary.estFuelLiters).toFixed(1)} l`;
-            renderCharts(filtered);
-        });
+    // custom range popup
+    function openRangeSheet() {
+        if (!rangeSheet) return;
+        rangeSheet.classList.remove('hidden');
+        document.documentElement.style.overflow = "hidden";
+        document.body.style.overflow = "hidden";
     }
+    function closeRangeSheet() {
+        if (!rangeSheet) return;
+        rangeSheet.classList.add('hidden');
+        document.documentElement.style.overflow = "";
+        document.body.style.overflow = "";
+    }
+    btnRangeOpen?.addEventListener('click', openRangeSheet);
+    rangeCancel?.addEventListener('click', closeRangeSheet);
+    rangeSheet?.addEventListener('click', (e)=>{ if (e.target === rangeSheet) closeRangeSheet(); });
+    rangeApply?.addEventListener('click', () => {
+        const s = rangeStart.value; const e = rangeEnd.value;
+        if (!s || !e || s > e) { alert('Select a valid date range'); return; }
+        const trips = loadTrips();
+        const filtered = trips.filter(t => t.date >= s && t.date <= e);
+        const summary = summarize(filtered);
+        if (statDistance) statDistance.textContent = formatKm(summary.distance);
+        if (statReceived) statReceived.textContent = formatCurrency(summary.received);
+        if (statFuel) statFuel.textContent = formatCurrency(summary.fuel);
+        if (statProfit) statProfit.textContent = formatCurrency(summary.profit);
+        if (statProfitPerKm) statProfitPerKm.textContent = formatCurrency(Math.round(summary.ppk));
+        if (statFuelEst) statFuelEst.textContent = `${(summary.estFuelLiters).toFixed(1)} l`;
+        renderCharts(filtered);
+        closeRangeSheet();
+    });
 
     // lightweight charts
     function renderMiniLine(canvas, points, color) {

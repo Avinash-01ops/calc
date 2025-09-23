@@ -46,11 +46,8 @@
 				<button data-period="week" class="tab">This Week</button>
 				<button data-period="month" class="tab">This Month</button>
 			</div>
-			<div class="range-controls">
-				<input type="date" id="rangeStart">
-				<span class="range-sep">to</span>
-				<input type="date" id="rangeEnd">
-				<button id="applyRange" class="icon-btn icon-only" aria-label="Apply range">➤</button>
+			<div class="range-controls" style="justify-content:flex-end">
+				<button id="btnRangeOpen" class="chip" aria-label="Custom range">📅 Custom range</button>
 			</div>
 			<div class="cards">
 				<div class="card"><span class="label">Distance</span><span class="value" id="stat-distance">0 km</span></div>
@@ -65,6 +62,23 @@
 				<canvas id="chartFuel" height="140"></canvas>
 			</section>
 		</section>
+
+		<!-- Range picker small sheet -->
+		<div id="rangeSheet" class="sheet hidden" aria-modal="true" role="dialog" aria-labelledby="rangeTitle">
+			<div class="sheet-handle"></div>
+			<div class="sheet-content">
+				<h3 id="rangeTitle">Select range</h3>
+				<div class="date-row">
+					<input type="date" id="rangeStart">
+					<span class="range-sep">to</span>
+					<input type="date" id="rangeEnd">
+				</div>
+				<div class="sheet-actions">
+					<button type="button" id="rangeCancel" class="btn ghost">Cancel</button>
+					<button type="button" id="rangeApply" class="btn primary">Apply</button>
+				</div>
+			</div>
+		</div>
 
 		<section class="efficiency hidden" id="efficiency">
 			<h2>Fuel Efficiency</h2>
