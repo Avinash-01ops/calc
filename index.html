@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+	<title>Trip Logger</title>
+	<link rel="stylesheet" href="styles.css">
+	<link rel="preconnect" href="https://fonts.googleapis.com">
+	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+	<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+</head>
+<body>
+	<header class="app-header">
+		<h1>Trip Logger</h1>
+		<nav class="top-tabs" id="top-tabs">
+			<button data-view="logs" class="top-tab active">Logs</button>
+			<button data-view="analytics" class="top-tab">Analytics</button>
+			<button data-view="efficiency" class="top-tab">Efficiency</button>
+		</nav>
+	</header>
+
+	<main class="content">
+		<section class="logs-view" id="logs-view">
+			<div class="list-controls">
+				<div class="filters" id="logFilters">
+					<button class="chip active" data-filter="all">All</button>
+					<button class="chip" data-filter="trip">Money</button>
+					<button class="chip" data-filter="fuel">Fuel</button>
+				</div>
+				<div class="sort">
+					<select id="logSort">
+						<option value="desc" selected>Newest</option>
+						<option value="asc">Oldest</option>
+					</select>
+				</div>
+			</div>
+			<section class="trip-list" id="trip-list">
+				<h2>Recent Trips</h2>
+				<ul id="trips"></ul>
+			</section>
+		</section>
+
+		<section class="analytics hidden" id="analytics">
+			<div class="period-tabs" id="period-tabs">
+				<button data-period="today" class="tab active">Today</button>
+				<button data-period="week" class="tab">This Week</button>
+				<button data-period="month" class="tab">This Month</button>
+			</div>
+			<div class="range-controls">
+				<input type="date" id="rangeStart">
+				<span class="range-sep">to</span>
+				<input type="date" id="rangeEnd">
+				<button id="applyRange" class="icon-btn icon-only" aria-label="Apply range">➤</button>
+			</div>
+			<div class="cards">
+				<div class="card"><span class="label">Distance</span><span class="value" id="stat-distance">0 km</span></div>
+				<div class="card"><span class="label">Received</span><span class="value" id="stat-received">₹0</span></div>
+				<div class="card"><span class="label">Est. fuel used (16 km/l)</span><span class="value" id="stat-fuel-est">0 l</span></div>
+				<div class="card"><span class="label">Est. fuel cost (₹100/l)</span><span class="value" id="stat-fuel-cost-est">₹0</span></div>
+			</div>
+			<section class="charts">
+				<h2>Charts</h2>
+				<canvas id="chartAmount" height="140"></canvas>
+				<canvas id="chartKm" height="140"></canvas>
+				<canvas id="chartFuel" height="140"></canvas>
+			</section>
+		</section>
+
+		<section class="efficiency hidden" id="efficiency">
+			<h2>Fuel Efficiency</h2>
+			<ul id="efficiencyList" class="eff-list"></ul>
+		</section>
+	</main>
+
+	<button id="fab-add" class="fab" aria-label="Add trip">+</button>
+
+	<div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+	<div id="sheet" class="sheet hidden" role="dialog" aria-modal="true" aria-labelledby="sheet-title">
+		<div class="sheet-handle" id="sheet-handle"></div>
+		<div class="sheet-content">
+			<h3 id="sheet-title">Add Trip</h3>
+			<form id="trip-form">
+				<div class="entry-type-tabs" id="entryTypeTabs">
+					<button type="button" data-type="trip" class="etype active">Trip</button>
+					<button type="button" data-type="fuel" class="etype">Fuel</button>
+				</div>
+				<label>
+					<span>Date</span>
+					<div class="date-row">
+						<input type="date" id="tripDate" required>
+						<button type="button" id="openDatePicker" class="icon-btn" aria-label="Open calendar">📅</button>
+					</div>
+				</label>
+				<div id="tripFields">
+					<label>
+						<span>Odometer (current)</span>
+						<input type="number" inputmode="numeric" id="kmReading" min="0">
+						<small class="hint" id="prevHint"></small>
+						<small class="hint" id="distancePreview"></small>
+					</label>
+					<label>
+						<span>Amount Received</span>
+						<input type="number" inputmode="decimal" id="amountReceived" min="0" step="0.01">
+					</label>
+				</div>
+
+				<div id="fuelFields" class="hidden">
+					<label>
+						<span>Odometer (at refuel)</span>
+						<input type="number" inputmode="numeric" id="fuelOdo" min="0">
+					</label>
+					<label>
+						<span>Fuel (liters)</span>
+						<input type="number" inputmode="decimal" id="fuelLiters" min="0" step="0.01">
+					</label>
+					<label>
+						<span>Fuel Cost</span>
+						<input type="number" inputmode="decimal" id="fuelCost" min="0" step="0.01">
+					</label>
+				</div>
+				<div class="sheet-actions">
+					<button type="button" id="cancelBtn" class="btn ghost">Cancel</button>
+					<button type="submit" class="btn primary">Save</button>
+				</div>
+			</form>
+		</div>
+	</div>
+
+	<script src="app.js"></script>
+</body>
+</html>
+
