@@ -8,6 +8,9 @@
 	<link rel="preconnect" href="https://fonts.googleapis.com">
 	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 	<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+
+	<!-- Supabase CDN - Load first -->
+	<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js" defer></script>
 </head>
 <body>
 	<header class="app-header">
@@ -15,12 +18,14 @@
 		<nav class="top-tabs" id="top-tabs">
 			<button data-view="logs" class="top-tab active">Logs</button>
 			<button data-view="analytics" class="top-tab">Analytics</button>
-			<button data-view="efficiency" class="top-tab">Efficiency</button>
 		</nav>
 	</header>
 
 	<main class="content">
 		<section class="logs-view" id="logs-view">
+			<div>
+
+			</div>
 			<div class="list-controls">
 				<div class="filters" id="logFilters">
 					<button class="chip active" data-filter="all">All</button>
@@ -43,8 +48,8 @@
 		<section class="analytics hidden" id="analytics">
 			<div class="period-tabs" id="period-tabs">
 				<button data-period="today" class="tab active">Today</button>
-				<button data-period="week" class="tab">This Week</button>
-				<button data-period="month" class="tab">This Month</button>
+				<button data-period="week" class="tab">Weekly</button>
+				<button data-period="month" class="tab">Monthly</button>
 			</div>
 			<div class="range-controls" style="justify-content:flex-end">
 				<button id="btnRangeOpen" class="chip" aria-label="Custom range">📅 Custom range</button>
@@ -52,15 +57,9 @@
 			<div class="cards">
 				<div class="card"><span class="label">Distance</span><span class="value" id="stat-distance">0 km</span></div>
 				<div class="card"><span class="label">Received</span><span class="value" id="stat-received">₹0</span></div>
-				<div class="card"><span class="label">Est. fuel used (16 km/l)</span><span class="value" id="stat-fuel-est">0 l</span></div>
-				<div class="card"><span class="label">Est. fuel cost (₹100/l)</span><span class="value" id="stat-fuel-cost-est">₹0</span></div>
+				<div class="card"><span class="label">Fuel Used</span><span class="value" id="stat-fuel-est">0 l</span></div>
+				<div class="card"><span class="label">Fuel Cost</span><span class="value" id="stat-fuel-cost-est">₹0</span></div>
 			</div>
-			<section class="charts">
-				<h2>Charts</h2>
-				<canvas id="chartAmount" height="140"></canvas>
-				<canvas id="chartKm" height="140"></canvas>
-				<canvas id="chartFuel" height="140"></canvas>
-			</section>
 		</section>
 
 		<!-- Range picker small sheet -->
@@ -80,10 +79,6 @@
 			</div>
 		</div>
 
-		<section class="efficiency hidden" id="efficiency">
-			<h2>Fuel Efficiency</h2>
-			<ul id="efficiencyList" class="eff-list"></ul>
-		</section>
 	</main>
 
 	<button id="fab-add" class="fab" aria-label="Add trip">+</button>
@@ -103,7 +98,6 @@
 					<span>Date</span>
 					<div class="date-row">
 						<input type="date" id="tripDate" required>
-						<button type="button" id="openDatePicker" class="icon-btn" aria-label="Open calendar">📅</button>
 					</div>
 				</label>
 				<div id="tripFields">
@@ -125,7 +119,7 @@
 						<input type="number" inputmode="numeric" id="fuelOdo" min="0">
 					</label>
 					<label>
-						<span>Fuel (liters)</span>
+						<span>Fuel</span>
 						<input type="number" inputmode="decimal" id="fuelLiters" min="0" step="0.01">
 					</label>
 					<label>
@@ -141,7 +135,20 @@
 		</div>
 	</div>
 
-	<script src="app.js"></script>
+	<script>
+		// Debug: Check if Supabase is loaded
+		window.addEventListener('load', function() {
+			console.log('Page loaded, checking Supabase...');
+			if (typeof window.supabase !== 'undefined') {
+				console.log('✅ Supabase loaded as window.supabase');
+			} else if (typeof supabase !== 'undefined') {
+				console.log('✅ Supabase loaded as global supabase');
+			} else {
+				console.log('❌ Supabase not found in global scope');
+			}
+		});
+	</script>
+	<script type="module" src="app.js"></script>
 </body>
 </html>
 

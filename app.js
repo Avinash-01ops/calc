@@ -1,8 +1,35 @@
+// Initialize Supabase client using global CDN version
+const supabaseUrl = 'https://aykuhjiruwcyxpybgweo.supabase.co';
+const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF5a3VoamlydXdjeXhweWJnd2VvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg2MjgyMjIsImV4cCI6MjA3NDIwNDIyMn0.NEG2qVqSd_-w2X_eozMLQLJbZ7_9vrSQVkWfk_U4-fg';
+
+// Wait for Supabase to be loaded from CDN
+function initializeSupabase() {
+  // Check multiple possible global variable names
+  if (typeof window.supabase !== 'undefined') {
+    return window.supabase.createClient(supabaseUrl, supabaseKey);
+  } else if (typeof window.SupabaseClient !== 'undefined') {
+    return new window.SupabaseClient(supabaseUrl, supabaseKey);
+  } else if (typeof supabase !== 'undefined') {
+    return supabase.createClient(supabaseUrl, supabaseKey);
+  } else {
+    // Try to access it directly if available
+    return window.supabase ? window.supabase.createClient(supabaseUrl, supabaseKey) : null;
+  }
+}
+
+// Initialize Supabase with error handling
+let supabase;
+try {
+  supabase = initializeSupabase();
+  if (!supabase) {
+    console.error('Supabase library not loaded. Please check CDN connection.');
+  }
+} catch (error) {
+  console.error('Error initializing Supabase:', error);
+}
+
 (function () {
 	"use strict";
-
-	// Storage keys
-	const STORAGE_KEY = "trip-logger:trips";
 
 	// Elements
     const tabsContainer = document.getElementById("period-tabs");
@@ -40,8 +67,6 @@
     const chartAmount = document.getElementById("chartAmount");
     const chartKm = document.getElementById("chartKm");
     const chartFuel = document.getElementById("chartFuel");
-    const efficiencyView = document.getElementById("efficiency");
-    const efficiencyList = document.getElementById("efficiencyList");
     const logFilters = document.getElementById("logFilters");
     const logSort = document.getElementById("logSort");
 
@@ -85,16 +110,63 @@
 		showToast._t = setTimeout(() => toast.classList.remove("show"), 1800);
 	}
 
-	// Data layer
-	function loadTrips() {
+	// Data layer - Supabase integration
+	async function loadTrips() {
 		try {
-			const raw = localStorage.getItem(STORAGE_KEY);
-			return raw ? JSON.parse(raw) : [];
-		} catch (_) { return []; }
+			if (!supabase) {
+				console.error('Supabase not initialized');
+				return [];
+			}
+
+			const { data, error } = await supabase
+				.from('trips')
+				.select('*')
+				.order('date', { ascending: true })
+				.order('created_at', { ascending: true });
+
+			if (error) {
+				console.error('Error loading trips:', error);
+				return [];
+			}
+
+			return data || [];
+		} catch (error) {
+			console.error('Error loading trips:', error);
+			return [];
+		}
 	}
 
-	function saveTrips(trips) {
-		localStorage.setItem(STORAGE_KEY, JSON.stringify(trips));
+	async function saveTrips(trips) {
+		try {
+			if (!supabase) {
+				console.error('Supabase not initialized');
+				return;
+			}
+
+			// First, delete all existing trips
+			const { error: deleteError } = await supabase
+				.from('trips')
+				.delete()
+				.neq('id', 0); // Delete all records
+
+			if (deleteError) {
+				console.error('Error deleting trips:', deleteError);
+				return;
+			}
+
+			// Then insert all trips
+			if (trips.length > 0) {
+				const { error: insertError } = await supabase
+					.from('trips')
+					.insert(trips);
+
+				if (insertError) {
+					console.error('Error inserting trips:', insertError);
+				}
+			}
+		} catch (error) {
+			console.error('Error saving trips:', error);
+		}
 	}
 
     function getPreviousKm(trips) {
@@ -143,8 +215,8 @@
         return { distance, received, fuel, profit, ppk, estFuelLiters };
     }
 
-    function updateAnalytics(period) {
-		const trips = loadTrips();
+    async function updateAnalytics(period) {
+		const trips = await loadTrips();
 		let filtered = trips;
 		if (period === "today") filtered = trips.filter(t => isSameDay(t.date));
 		if (period === "week") filtered = trips.filter(t => isSameWeek(t.date));
@@ -160,8 +232,8 @@
         renderCharts(filtered);
 	}
 
-    function renderTrips() {
-        let trips = loadTrips();
+    async function renderTrips() {
+        let trips = await loadTrips();
         const activeFilter = (document.querySelector('#logFilters .chip.active')?.dataset.filter) || 'all';
         const sortDir = logSort?.value || 'desc';
         if (activeFilter !== 'all') {
@@ -196,43 +268,80 @@
             li.appendChild(rightWrap);
             tripsList.appendChild(li);
 
-            editBtn.addEventListener("click", () => openEditorFor(trips.length - 1 - idx));
-            delBtn.addEventListener("click", () => deleteEntry(trips.length - 1 - idx));
+            editBtn.addEventListener("click", () => openEditorFor(t.id));
+            delBtn.addEventListener("click", () => deleteEntry(t.id));
         });
     }
 
-    function openEditorFor(index) {
-        const trips = loadTrips();
-        const t = trips[index]; if (!t) return;
-        openSheet(true);
-        form.dataset.editIndex = String(index);
-        if (t.type === 'fuel') {
-            setEntryType('fuel');
-            document.getElementById("sheet-title").textContent = "Edit Fuel";
-            tripDateInput.value = t.date;
-            fuelOdoInput.value = t.km_reading || 0;
-            fuelLitersInput.value = t.fuel_liters || 0;
-            fuelCostInput.value = t.fuel_cost || 0;
-        } else {
-            setEntryType('trip');
-            document.getElementById("sheet-title").textContent = "Edit Trip";
-            tripDateInput.value = t.date;
-            kmReadingInput.value = t.km_reading;
-            amountReceivedInput.value = t.amount_received;
-            updatePrevAndPreview();
+    async function openEditorFor(id) {
+        try {
+            if (!supabase) {
+                console.error('Supabase not initialized');
+                return;
+            }
+
+            const { data: trip, error } = await supabase
+                .from('trips')
+                .select('*')
+                .eq('id', id)
+                .single();
+
+            if (error || !trip) {
+                console.error('Error loading trip for editing:', error);
+                return;
+            }
+
+            openSheet(true);
+            form.dataset.editIndex = String(id);
+
+            if (trip.type === 'fuel') {
+                setEntryType('fuel');
+                document.getElementById("sheet-title").textContent = "Edit Fuel";
+                tripDateInput.value = trip.date;
+                fuelOdoInput.value = trip.km_reading || 0;
+                fuelLitersInput.value = trip.fuel_liters || 0;
+                fuelCostInput.value = trip.fuel_cost || 0;
+            } else {
+                setEntryType('trip');
+                document.getElementById("sheet-title").textContent = "Edit Trip";
+                tripDateInput.value = trip.date;
+                kmReadingInput.value = trip.km_reading;
+                amountReceivedInput.value = trip.amount_received;
+                updatePrevAndPreview();
+            }
+        } catch (error) {
+            console.error('Error loading trip for editing:', error);
         }
     }
 
-    function deleteEntry(index) {
-        const trips = loadTrips();
-        if (!trips[index]) return;
+    async function deleteEntry(id) {
         if (!confirm("Delete this entry?")) return;
-        trips.splice(index, 1);
-        recomputeDistances(trips);
-        saveTrips(trips);
-        renderTrips();
-        updateAnalytics(tabsContainer.querySelector(".tab.active")?.dataset.period || "today");
-        showToast("Deleted");
+
+        try {
+            if (!supabase) {
+                console.error('Supabase not initialized');
+                showToast("Error deleting entry");
+                return;
+            }
+
+            const { error } = await supabase
+                .from('trips')
+                .delete()
+                .eq('id', id);
+
+            if (error) {
+                console.error('Error deleting entry:', error);
+                showToast("Error deleting entry");
+                return;
+            }
+
+            showToast("Deleted");
+            renderTrips();
+            updateAnalytics(tabsContainer.querySelector(".tab.active")?.dataset.period || "today");
+        } catch (error) {
+            console.error('Error deleting entry:', error);
+            showToast("Error deleting entry");
+        }
     }
 
     function recomputeDistances(trips) {
@@ -290,12 +399,9 @@ function openSheet(isEdit = false) {
         btn.classList.add("active");
         const view = btn.dataset.view;
         if (view === "logs") {
-            logsView.classList.remove("hidden"); analyticsView.classList.add("hidden"); efficiencyView.classList.add("hidden");
+            logsView.classList.remove("hidden"); analyticsView.classList.add("hidden");
         } else if (view === "analytics") {
-            analyticsView.classList.remove("hidden"); logsView.classList.add("hidden"); efficiencyView.classList.add("hidden");
-        } else {
-            efficiencyView.classList.remove("hidden"); logsView.classList.add("hidden"); analyticsView.classList.add("hidden");
-            renderEfficiency();
+            analyticsView.classList.remove("hidden"); logsView.classList.add("hidden");
         }
         localStorage.setItem("trip-logger:view", view);
     });
@@ -324,44 +430,75 @@ function openSheet(isEdit = false) {
     }
     entryTypeTabs.addEventListener('click', (e) => { const b = e.target.closest('.etype'); if (!b) return; setEntryType(b.dataset.type); });
 
-    form.addEventListener("submit", (e) => {
+    form.addEventListener("submit", async (e) => {
 		e.preventDefault();
-		const trips = loadTrips();
-        const date = (document.getElementById("tripDate").value || getTodayISO());
-        const entryType = form.dataset.entryType || 'trip';
-        let record = { date };
-        if (entryType === 'fuel') {
-            const fOdo = parseNumber(fuelOdoInput.value);
-            const fLiters = parseNumber(fuelLitersInput.value);
-            const fCost = parseNumber(fuelCostInput.value);
-            if (fLiters <= 0) { alert('Please enter fuel in liters'); return; }
-            if (fCost <= 0) { alert('Please enter fuel cost'); return; }
-            record = { ...record, type: 'fuel', km_reading: fOdo || 0, fuel_liters: fLiters, fuel_cost: fCost };
-        } else {
-            const previousKm = getPreviousKmForDate(trips, date);
-            const kmReading = parseNumber(document.getElementById("kmReading").value);
-            const amountReceived = parseNumber(document.getElementById("amountReceived").value);
-            if (kmReading <= 0 || kmReading < previousKm) { alert(`Odometer must be greater than previous (${previousKm}).`); return; }
-            const distance = kmReading - previousKm;
-            record = { ...record, type: 'trip', km_reading: kmReading, distance, amount_received: amountReceived, fuel_cost: 0, profit: amountReceived };
-        }
 
-        if (form.dataset.editIndex) {
-            const idx = Number(form.dataset.editIndex);
-            trips[idx] = record;
-            delete form.dataset.editIndex;
-        } else {
-            trips.push(record);
+        try {
+            const trips = await loadTrips(); // Load trips to get previous km for validation
+            const date = (document.getElementById("tripDate").value || getTodayISO());
+            const entryType = form.dataset.entryType || 'trip';
+            let record = { date };
+
+            if (entryType === 'fuel') {
+                const fOdo = parseNumber(fuelOdoInput.value);
+                const fLiters = parseNumber(fuelLitersInput.value);
+                const fCost = parseNumber(fuelCostInput.value);
+                if (fLiters <= 0) { alert('Please enter fuel in liters'); return; }
+                if (fCost <= 0) { alert('Please enter fuel cost'); return; }
+                record = { ...record, type: 'fuel', km_reading: fOdo || 0, fuel_liters: fLiters, fuel_cost: fCost };
+            } else {
+                const previousKm = getPreviousKmForDate(trips, date);
+                const kmReading = parseNumber(document.getElementById("kmReading").value);
+                const amountReceived = parseNumber(document.getElementById("amountReceived").value);
+                if (kmReading <= 0 || kmReading < previousKm) { alert(`Odometer must be greater than previous (${previousKm}).`); return; }
+                const distance = kmReading - previousKm;
+                record = { ...record, type: 'trip', km_reading: kmReading, distance, amount_received: amountReceived, fuel_cost: 0, profit: amountReceived };
+            }
+
+            if (!supabase) {
+                console.error('Supabase not initialized');
+                showToast("Error saving entry");
+                return;
+            }
+
+            if (form.dataset.editIndex) {
+                // Update existing record
+                const editId = form.dataset.editIndex;
+                delete form.dataset.editIndex;
+
+                const { error } = await supabase
+                    .from('trips')
+                    .update(record)
+                    .eq('id', editId);
+
+                if (error) {
+                    console.error('Error updating trip:', error);
+                    showToast("Error updating entry");
+                    return;
+                }
+            } else {
+                // Insert new record
+                const { error } = await supabase
+                    .from('trips')
+                    .insert([record]);
+
+                if (error) {
+                    console.error('Error creating trip:', error);
+                    showToast("Error creating entry");
+                    return;
+                }
+            }
+
+            form.reset();
+            closeSheet();
+            renderTrips();
+            const active = tabsContainer.querySelector(".tab.active")?.dataset.period || "today";
+            updateAnalytics(active);
+            showToast("Saved");
+        } catch (error) {
+            console.error('Error saving trip:', error);
+            showToast("Error saving entry");
         }
-        // recompute after insert/update
-        recomputeDistances(trips);
-		saveTrips(trips);
-		form.reset();
-		closeSheet();
-		renderTrips();
-		const active = tabsContainer.querySelector(".tab.active")?.dataset.period || "today";
-		updateAnalytics(active);
-		showToast("Saved");
 	});
 
     // Import/Export removed as requested
@@ -403,7 +540,6 @@ function openSheet(isEdit = false) {
         const vbtn = document.querySelector(`.top-tab[data-view="${view}"]`);
         if (vbtn) { [...document.querySelectorAll(".top-tab")].forEach(b=>b.classList.remove("active")); vbtn.classList.add("active"); }
         if (view === "analytics") { analyticsView.classList.remove("hidden"); logsView.classList.add("hidden"); }
-        if (view === "efficiency") { efficiencyView.classList.remove("hidden"); logsView.classList.add("hidden"); analyticsView.classList.add("hidden"); renderEfficiency(); }
         // default custom range to this month
         const now = new Date();
         const start = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0,10);
@@ -422,36 +558,8 @@ function openSheet(isEdit = false) {
     }
     if (logSort) { logSort.addEventListener('change', renderTrips); }
 
-    // Efficiency view
-    function renderEfficiency() {
-        const trips = loadTrips().slice().sort((a,b)=> a.date.localeCompare(b.date) || ((a.km_reading||0)-(b.km_reading||0)));
-        const segments = [];
-        let lastFuel = null;
-        for (const t of trips) {
-            if (t.type === 'fuel') {
-                if (lastFuel && lastFuel.odo != null && t.km_reading != null) {
-                    const km = Math.max(0, (t.km_reading||0) - (lastFuel.odo||0));
-                    segments.push({
-                        fromDate: lastFuel.date,
-                        toDate: t.date,
-                        km,
-                        liters: t.fuel_liters || 0,
-                        cost: t.fuel_cost || 0,
-                        efficiency: (t.fuel_liters||0) > 0 ? km / t.fuel_liters : 0
-                    });
-                }
-                lastFuel = { date: t.date, odo: t.km_reading||0 };
-            }
-        }
-        efficiencyList.innerHTML = segments.map(s => {
-            const costPerKm = s.km > 0 ? (s.cost / s.km) : 0;
-            return `<li>
-                <div><strong>${formatWeekdayDDMMYY(s.fromDate)} → ${formatWeekdayDDMMYY(s.toDate)}</strong></div>
-                <div class="trip-meta">${Math.round(s.km)} km • ${s.liters.toFixed(1)} l • ₹${Math.round(s.cost)} • ₹/km ${costPerKm.toFixed(2)}</div>
-                <div><strong>${s.efficiency.toFixed(1)} km/l</strong></div>
-            </li>`;
-        }).join('');
-    }
+
+
 
     // custom range popup
     function openRangeSheet() {
