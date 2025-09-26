@@ -252,7 +252,7 @@ try {
             } else {
                 meta = `${Math.round(t.distance || 0)} km • odometer ${t.km_reading}`;
             }
-            const icon = t.type === 'fuel' ? '<span style="color:#ff6b6b">⛽</span>' : '<span style="color:#23c483">₹</span>';
+            const icon = t.type === 'fuel' ? '<span style="color:#ff6b6b">Fuel</span>' : '<span style=\"color:#23c483\">Amount</span>';
             left.innerHTML = `<div>${icon} ${formatWeekdayDDMMYY(t.date)}</div><div class=\"trip-meta\">${meta}</div>`;
             const right = document.createElement("div");
             right.className = "trip-values";
@@ -260,8 +260,8 @@ try {
             right.innerHTML = `<div>${formatCurrency(mainAmt)}</div>`;
             const actions = document.createElement("div");
             actions.className = "trip-actions";
-            const editBtn = document.createElement("button"); editBtn.className = "icon-btn"; editBtn.setAttribute('aria-label','Edit'); editBtn.innerHTML = "✎";
-            const delBtn = document.createElement("button"); delBtn.className = "icon-btn"; delBtn.setAttribute('aria-label','Delete'); delBtn.innerHTML = "🗑";
+            const editBtn = document.createElement("button"); editBtn.className = "icon-btn"; editBtn.setAttribute('aria-label','Edit'); editBtn.textContent = "Edit";
+            const delBtn = document.createElement("button"); delBtn.className = "icon-btn"; delBtn.setAttribute('aria-label','Delete'); delBtn.textContent = "Delete";
             actions.appendChild(editBtn); actions.appendChild(delBtn);
             li.appendChild(left);
             const rightWrap = document.createElement("div"); rightWrap.style.display = "flex"; rightWrap.style.alignItems = "center"; rightWrap.appendChild(right); rightWrap.appendChild(actions);

@@ -52,13 +52,13 @@
 				<button data-period="month" class="tab">Monthly</button>
 			</div>
 			<div class="range-controls" style="justify-content:flex-end">
-				<button id="btnRangeOpen" class="chip" aria-label="Custom range">📅 Custom range</button>
+                <button id="btnRangeOpen" class="chip" aria-label="Custom range">Custom range</button>
 			</div>
 			<div class="cards">
 				<div class="card"><span class="label">Distance</span><span class="value" id="stat-distance">0 km</span></div>
-				<div class="card"><span class="label">Received</span><span class="value" id="stat-received">₹0</span></div>
+                <div class="card"><span class="label">Received</span><span class="value" id="stat-received">0</span></div>
 				<div class="card"><span class="label">Fuel Used</span><span class="value" id="stat-fuel-est">0 l</span></div>
-				<div class="card"><span class="label">Fuel Cost</span><span class="value" id="stat-fuel-cost-est">₹0</span></div>
+                <div class="card"><span class="label">Fuel Cost</span><span class="value" id="stat-fuel-cost-est">0</span></div>
 			</div>
 		</section>
 
@@ -139,13 +139,13 @@
 		// Debug: Check if Supabase is loaded
 		window.addEventListener('load', function() {
 			console.log('Page loaded, checking Supabase...');
-			if (typeof window.supabase !== 'undefined') {
-				console.log('✅ Supabase loaded as window.supabase');
-			} else if (typeof supabase !== 'undefined') {
-				console.log('✅ Supabase loaded as global supabase');
-			} else {
-				console.log('❌ Supabase not found in global scope');
-			}
+            if (typeof window.supabase !== 'undefined') {
+                console.log('Supabase loaded as window.supabase');
+            } else if (typeof supabase !== 'undefined') {
+                console.log('Supabase loaded as global supabase');
+            } else {
+                console.log('Supabase not found in global scope');
+            }
 		});
 	</script>
 	<script type="module" src="app.js"></script>
