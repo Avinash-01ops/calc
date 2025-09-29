@@ -77,12 +77,12 @@ export default function ResetPassword() {
   const passwordStrength = getPasswordStrength(password)
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen">
       <div className="section">
         <div className="max-w-md mx-auto">
           {/* Header */}
           <div className="text-center mb-8">
-            <h1 className="text-2xl font-semibold text-gray-900">Set new password</h1>
+            <h1 className="text-2xl font-semibold text-[var(--text-primary)]">Set new password</h1>
           </div>
 
           {/* Reset Form */}
@@ -149,7 +149,7 @@ export default function ResetPassword() {
 
           {/* Footer Links */}
           <div className="text-center space-y-4">
-            <div className="text-sm text-gray-600">
+            <div className="text-sm text-[var(--text-secondary)]">
               Remember your password?{' '}
               <Link
                 href="/login"

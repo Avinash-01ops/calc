@@ -11,6 +11,7 @@ export default function TripLogger() {
   const [activeView, setActiveView] = useState('logs') // 'logs' or 'analytics'
   const [activeFilter, setActiveFilter] = useState('all') // 'all', 'trip', 'fuel'
   const [activePeriod, setActivePeriod] = useState('today') // 'today', 'week', 'month'
+  const [activeAnalyticsTab, setActiveAnalyticsTab] = useState('summary') // 'summary' | 'fuel'
   const [isAddOpen, setIsAddOpen] = useState(false)
   const [entryType, setEntryType] = useState('trip') // 'trip' | 'fuel' | 'reading'
   const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10))
@@ -27,6 +28,7 @@ export default function TripLogger() {
   const pageSize = 5
   const [editingId, setEditingId] = useState(null)
   const supabase = createClient()
+  const [toast, setToast] = useState({ text: '', type: '' }) // type: 'success' | 'error'
 
   useEffect(() => {
     loadTrips()
@@ -99,6 +101,12 @@ export default function TripLogger() {
     } finally {
       setLoading(false)
     }
+  }
+
+  function showToast(text, type = 'success') {
+    setToast({ text, type })
+    window.clearTimeout((showToast)._t)
+    ;(showToast)._t = window.setTimeout(() => setToast({ text: '', type: '' }), 2200)
   }
 
   const filteredTrips = trips.filter(trip => {
@@ -326,6 +334,7 @@ export default function TripLogger() {
     const ok = window.confirm('Delete this reading?')
     if (!ok) return
     deleteStoredReading(id)
+    showToast('Reading deleted', 'success')
   }
 
   const deleteTrip = async (tripId) => {
@@ -336,9 +345,10 @@ export default function TripLogger() {
       const { error } = await supabase.from('trips').delete().eq('id', tripId)
       if (error) throw error
       await loadTrips()
+      showToast('Entry deleted', 'success')
     } catch (err) {
       console.error('Delete error', err)
-      alert('Failed to delete entry')
+      showToast('Failed to delete entry', 'error')
     }
   }
 
@@ -355,34 +365,31 @@ export default function TripLogger() {
     <div className="space-y-8 md:space-y-10">
       {/* Navigation Tabs */}
       <div className="flex items-center justify-between">
-        <div className="inline-grid grid-flow-col auto-cols-max gap-1 bg-gray-50 p-1 rounded-lg">
+        <div className="inline-flex items-center gap-1 p-1 rounded-lg border bg-[var(--surface-1)]">
           <button
             onClick={() => setActiveView('logs')}
-            className={`px-6 py-2 rounded-md text-sm font-medium ${
-              activeView === 'logs'
-                ? 'bg-white text-blue-600'
-                : 'text-gray-600 hover:text-gray-800 hover:bg-gray-50'
+            className={`px-4 py-2 text-sm font-medium rounded-md ${
+              activeView === 'logs' ? 'bg-[var(--primary-color)] text-white' : 'text-[var(--text-secondary)] hover:bg-[var(--surface-2)]'
             }`}
           >
-            Trip Logs
+            Trips
           </button>
           <button
             onClick={() => setActiveView('analytics')}
-            className={`px-6 py-2 rounded-md text-sm font-medium ${
-              activeView === 'analytics'
-                ? 'bg-white text-blue-600'
-                : 'text-gray-600 hover:text-gray-800 hover:bg-gray-50'
+            className={`px-4 py-2 text-sm font-medium rounded-md ${
+              activeView === 'analytics' ? 'bg-[var(--primary-color)] text-white' : 'text-[var(--text-secondary)] hover:bg-[var(--surface-2)]'
             }`}
           >
             Analytics
           </button>
         </div>
         <Button
-          size="md"
+          size="sm"
+          variant="success"
           className="inline-flex items-center"
           onClick={() => { setIsAddOpen(true) }}
         >
-          Add Entry
+          Add
         </Button>
       </div>
 
@@ -390,33 +397,27 @@ export default function TripLogger() {
       {activeView === 'logs' && (
         <div className="space-y-6">
           {/* Filters */}
-          <div className="inline-grid grid-flow-col auto-cols-max gap-2">
+          <div className="inline-flex items-center gap-1 p-1 rounded-lg border bg-[var(--surface-1)]">
             <button
               onClick={() => setActiveFilter('all')}
-              className={`px-3 py-1.5 rounded-full text-sm ${
-                activeFilter === 'all'
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              className={`px-3 py-1.5 text-sm rounded-md ${
+                activeFilter === 'all' ? 'bg-[var(--primary-color)] text-white' : 'text-[var(--text-secondary)] hover:bg-[var(--surface-2)]'
               }`}
             >
-              All Entries
+              All
             </button>
             <button
               onClick={() => setActiveFilter('trip')}
-              className={`px-3 py-1.5 rounded-full text-sm ${
-                activeFilter === 'trip'
-                  ? 'bg-green-600 text-white'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              className={`px-3 py-1.5 text-sm rounded-md ${
+                activeFilter === 'trip' ? 'bg-[var(--success-color)] text-white' : 'text-[var(--text-secondary)] hover:bg-[var(--surface-2)]'
               }`}
             >
-              Trips
+              Trip
             </button>
             <button
               onClick={() => setActiveFilter('fuel')}
-              className={`px-3 py-1.5 rounded-full text-sm ${
-                activeFilter === 'fuel'
-                  ? 'bg-purple-600 text-white'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              className={`px-3 py-1.5 text-sm rounded-md ${
+                activeFilter === 'fuel' ? 'bg-[var(--primary-color)] text-white' : 'text-[var(--text-secondary)] hover:bg-[var(--surface-2)]'
               }`}
             >
               Fuel
@@ -425,18 +426,18 @@ export default function TripLogger() {
 
           {/* Trip Table (compact) */}
           <div className="overflow-auto">
-            <table className="w-full text-sm">
+            <table className="table text-sm">
               <thead>
                 <tr className="text-left text-gray-600">
-                  <th className="py-2 pr-4 font-medium">Date</th>
-                  <th className="py-2 pr-4 font-medium">Log Type</th>
-                  <th className="py-2 pr-4 font-medium">KM Driven</th>
-                  <th className="py-2 pr-4 font-medium">Amount Received</th>
-                  <th className="py-2 pr-4 font-medium">Fuel Used (L)</th>
-                  <th className="py-2 pr-4 font-medium">Fuel Cost</th>
-                  <th className="py-2 pr-4 font-medium">Current Status</th>
-                  <th className="py-2 pr-2 font-medium text-right w-px">Edit</th>
-                  <th className="py-2 font-medium text-right w-px">Del</th>
+                  <th>Date</th>
+                  <th>Type</th>
+                  <th>KM</th>
+                  <th>Amt</th>
+                  <th>Fuel</th>
+                  <th>Cost</th>
+                  <th>Net</th>
+                  <th className="text-right w-px"></th>
+                  <th className="text-right w-px"></th>
                 </tr>
               </thead>
               <tbody>
@@ -455,21 +456,21 @@ export default function TripLogger() {
                       const cost = row.type === 'trip' ? (used * 100) : (row.fuel_cost || 0)
                       const profit = amount - cost
                       return (
-                        <tr key={row.id} className="border-t align-middle">
-                          <td className="py-2 pr-4 whitespace-nowrap">{formatDate(row.date)}</td>
-                          <td className="py-2 pr-4">
-                            <span className={`px-2 py-0.5 rounded text-xs font-semibold text-white ${row.type === 'trip' ? 'bg-green-600' : 'bg-purple-600'}`}>{row.type === 'trip' ? 'Trip' : 'Fuel'}</span>
+                        <tr key={row.id} className="align-middle">
+                          <td className="whitespace-nowrap">{formatDate(row.date)}</td>
+                          <td>
+                            <span className={`badge ${row.type === 'trip' ? 'badge-green' : 'badge-purple'}`}>{row.type === 'trip' ? 'Trip' : 'Fuel'}</span>
                           </td>
-                          <td className="py-2 pr-4">{distance.toLocaleString()} km</td>
-                          <td className="py-2 pr-4">{formatCurrency(amount)}</td>
-                          <td className="py-2 pr-4">{used.toFixed(1)} L</td>
-                          <td className="py-2 pr-4">{formatCurrency(cost)}</td>
-                          <td className="py-2 pr-4"><span className={profit >= 0 ? 'text-green-600' : 'text-red-600'}>{formatCurrency(profit)}</span></td>
-                          <td className="py-1 pr-2 text-right w-px">
-                            <button type="button" title="Edit" aria-label="Edit" onClick={() => startEdit(row)} className="h-7 w-7 rounded-md bg-blue-600 text-white text-xs font-semibold leading-none grid place-items-center">✎</button>
+                          <td>{distance.toLocaleString()} km</td>
+                          <td>{formatCurrency(amount)}</td>
+                          <td>{used.toFixed(1)} L</td>
+                          <td>{formatCurrency(cost)}</td>
+                          <td><span className={`${profit >= 0 ? 'text-green-600' : 'text-red-600'} font-bold`}>{formatCurrency(Math.abs(profit))}</span></td>
+                          <td className="text-right w-px">
+                            <button type="button" title="Edit" aria-label="Edit" onClick={() => startEdit(row)} className="h-7 w-7 rounded-md btn-light-success text-xs font-semibold leading-none grid place-items-center">✎</button>
                           </td>
-                          <td className="py-1 text-right w-px">
-                            <button type="button" title="Delete" aria-label="Delete" onClick={() => deleteTrip(row.id)} className="h-7 w-7 rounded-md bg-blue-600 text-white text-xs font-semibold leading-none grid place-items-center">×</button>
+                          <td className="text-right w-px">
+                            <button type="button" title="Delete" aria-label="Delete" onClick={() => deleteTrip(row.id)} className="h-7 w-7 rounded-md btn-light-danger text-xs font-semibold leading-none grid place-items-center">×</button>
                           </td>
                         </tr>
                       )
@@ -514,60 +515,136 @@ export default function TripLogger() {
 
       {/* Analytics View */}
       {activeView === 'analytics' && (
-        <div className="space-y-8">
-          {/* Period Tabs */}
-          <div className="flex flex-wrap gap-3 justify-center">
+        <div className="space-y-6">
+          {/* Top bar: right-aligned period tabs */}
+          <div className="flex items-center justify-start">
+            <div className="inline-flex items-center gap-1 border rounded-md p-1 bg-[var(--surface-1)]">
+              <button
+                onClick={() => setActivePeriod('today')}
+                className={`px-3 py-1.5 rounded text-sm font-medium ${
+                  activePeriod === 'today' ? 'bg-[var(--primary-color)] text-white' : 'text-[var(--text-secondary)] hover:bg-[var(--surface-2)]'
+                }`}
+              >
+                Today
+              </button>
+              <button
+                onClick={() => setActivePeriod('week')}
+                className={`px-3 py-1.5 rounded text-sm font-medium ${
+                  activePeriod === 'week' ? 'bg-[var(--primary-color)] text-white' : 'text-[var(--text-secondary)] hover:bg-[var(--surface-2)]'
+                }`}
+              >
+                This Week
+              </button>
+              <button
+                onClick={() => setActivePeriod('month')}
+                className={`px-3 py-1.5 rounded text-sm font-medium ${
+                  activePeriod === 'month' ? 'bg-[var(--primary-color)] text-white' : 'text-[var(--text-secondary)] hover:bg-[var(--surface-2)]'
+                }`}
+              >
+                This Month
+              </button>
+            </div>
+          </div>
+
+          {/* Secondary tabs: Summary | Fuel */}
+          <div className="inline-flex items-center gap-1 p-1 rounded-lg border bg-[var(--surface-1)]">
             <button
-              onClick={() => setActivePeriod('today')}
-              className={`px-5 py-3 rounded-full text-sm font-semibold transition-all duration-200 ${
-                activePeriod === 'today'
-                  ? 'bg-blue-600 text-white shadow-lg transform scale-105'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200 hover:transform hover:scale-105'
+              onClick={() => setActiveAnalyticsTab('summary')}
+              className={`px-3 py-1.5 text-sm font-medium rounded-md ${
+                activeAnalyticsTab === 'summary' ? 'bg-[var(--primary-color)] text-white' : 'text-[var(--text-secondary)] hover:bg-[var(--surface-2)]'
               }`}
             >
-              Today
+              Summary
             </button>
             <button
-              onClick={() => setActivePeriod('week')}
-              className={`px-5 py-3 rounded-full text-sm font-semibold transition-all duration-200 ${
-                activePeriod === 'week'
-                  ? 'bg-blue-600 text-white shadow-lg transform scale-105'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200 hover:transform hover:scale-105'
+              onClick={() => setActiveAnalyticsTab('fuel')}
+              className={`px-3 py-1.5 text-sm font-medium rounded-md ${
+                activeAnalyticsTab === 'fuel' ? 'bg-[var(--primary-color)] text-white' : 'text-[var(--text-secondary)] hover:bg-[var(--surface-2)]'
               }`}
             >
-              This Week
-            </button>
-            <button
-              onClick={() => setActivePeriod('month')}
-              className={`px-5 py-3 rounded-full text-sm font-semibold transition-all duration-200 ${
-                activePeriod === 'month'
-                  ? 'bg-blue-600 text-white shadow-lg transform scale-105'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200 hover:transform hover:scale-105'
-              }`}
-            >
-              This Month
+              Fuel
             </button>
           </div>
 
-          {/* Analytics Cards (icons removed) */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            <Card className="p-6 text-center border">
-              <div className="text-sm font-semibold text-gray-500 mb-1">Distance (km)</div>
-              <div className="text-3xl font-bold text-gray-900">{analytics.totalDistance.toLocaleString()}</div>
-            </Card>
-            <Card className="p-6 text-center border">
-              <div className="text-sm font-semibold text-gray-500 mb-1">Earnings</div>
-              <div className="text-3xl font-bold text-gray-900">{formatCurrency(analytics.totalReceived)}</div>
-            </Card>
-            <Card className="p-6 text-center border">
-              <div className="text-sm font-semibold text-gray-500 mb-1">Fuel Used (L)</div>
-              <div className="text-3xl font-bold text-gray-900">{analytics.totalFuel.toFixed(1)}</div>
-            </Card>
-            <Card className="p-6 text-center border">
-              <div className="text-sm font-semibold text-gray-500 mb-1">Fuel Cost</div>
-              <div className="text-3xl font-bold text-gray-900">{formatCurrency(analytics.totalFuelCost)}</div>
-            </Card>
-          </div>
+          {activeAnalyticsTab === 'summary' && (
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+              <Card className="p-6 text-center border">
+                <div className="text-sm font-semibold text-gray-500 mb-1">Distance (km)</div>
+                <div className="text-3xl font-bold text-gray-900">{analytics.totalDistance.toLocaleString()}</div>
+              </Card>
+              <Card className="p-6 text-center border">
+                <div className="text-sm font-semibold text-gray-500 mb-1">Earnings</div>
+                <div className="text-3xl font-bold text-gray-900">{formatCurrency(analytics.totalReceived)}</div>
+              </Card>
+              <Card className="p-6 text-center border">
+                <div className="text-sm font-semibold text-gray-500 mb-1">Fuel Used (L)</div>
+                <div className="text-3xl font-bold text-gray-900">{analytics.totalFuel.toFixed(1)}</div>
+              </Card>
+              <Card className="p-6 text-center border">
+                <div className="text-sm font-semibold text-gray-500 mb-1">Fuel Cost</div>
+                <div className="text-3xl font-bold text-gray-900">{formatCurrency(analytics.totalFuelCost)}</div>
+              </Card>
+            </div>
+          )}
+
+          {activeAnalyticsTab === 'fuel' && (
+            <div className="overflow-auto">
+              <table className="table text-sm">
+                <thead>
+                  <tr className="text-left text-gray-600">
+                    <th>Date</th>
+                    <th>Type</th>
+                    <th>Odo</th>
+                    <th>Fuel</th>
+                    <th>Cost</th>
+                    <th>Since</th>
+                    <th>Avg</th>
+                    <th className="text-right w-px"></th>
+                    <th className="text-right w-px"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(() => {
+                    const fuels = trips
+                      .filter(t => t.type === 'fuel')
+                      .sort((a, b) => new Date(a.date) - new Date(b.date))
+                    if (fuels.length === 0) {
+                      return (
+                        <tr>
+                          <td colSpan={9} className="py-6 text-center text-gray-500">No fuel entries</td>
+                        </tr>
+                      )
+                    }
+                    return fuels.map((f, idx) => {
+                      const prevOdo = idx === 0 ? getPreviousKmForDate(trips, f.date) : (fuels[idx - 1].km_reading || 0)
+                      const kmSince = Math.max(0, (Number(f.km_reading)||0) - (Number(prevOdo)||0))
+                      const liters = Number(f.fuel_liters)||0
+                      const avg = liters > 0 ? (kmSince / liters) : 0
+                      return (
+                        <tr key={f.id} className="align-middle">
+                          <td className="whitespace-nowrap">{formatDate(f.date)}</td>
+                          <td>
+                            <span className="badge badge-purple">Fuel</span>
+                          </td>
+                          <td>{Number(f.km_reading||0).toLocaleString()} km</td>
+                          <td>{liters.toFixed(2)} L</td>
+                          <td>{formatCurrency(f.fuel_cost||0)}</td>
+                          <td>{kmSince.toLocaleString()} km</td>
+                          <td>{avg.toFixed(2)}</td>
+                          <td className="text-right w-px">
+                            <button type="button" title="Edit" aria-label="Edit" onClick={() => startEdit(f)} className="h-7 w-7 rounded-md btn-light-success text-xs font-semibold leading-none grid place-items-center">✎</button>
+                          </td>
+                          <td className="text-right w-px">
+                            <button type="button" title="Delete" aria-label="Delete" onClick={() => deleteTrip(f.id)} className="h-7 w-7 rounded-md btn-light-danger text-xs font-semibold leading-none grid place-items-center">×</button>
+                          </td>
+                        </tr>
+                      )
+                    })
+                  })()}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       )}
 
@@ -654,8 +731,8 @@ export default function TripLogger() {
                         <tr className="text-left text-gray-600">
                           <th className="py-2 pr-4 font-medium">Date</th>
                           <th className="py-2 pr-4 font-medium">Odometer</th>
-                          <th className="py-2 pr-2 font-medium text-right w-px">Edit</th>
-                          <th className="py-2 font-medium text-right w-px">Del</th>
+                          <th className="py-2 pr-2 font-medium text-right w-px"></th>
+                          <th className="py-2 font-medium text-right w-px"></th>
                         </tr>
                       </thead>
                       <tbody>
@@ -689,11 +766,27 @@ export default function TripLogger() {
 
               <div className="flex items-center justify-end gap-3 pt-2">
                 <Button type="button" variant="ghost" onClick={() => { setIsAddOpen(false); resetForm(); }}>Cancel</Button>
-                <Button type="submit" loading={saving}>{saving ? 'Saving...' : 'Save'}</Button>
+                <Button variant="success" type="submit" loading={saving}>{saving ? 'Saving...' : 'Save'}</Button>
               </div>
             </form>
           </div>
       </div>
+      )}
+
+      {/* Toast */}
+      {toast.text && (
+        <div
+          role="status"
+          aria-live="polite"
+          className={`fixed bottom-4 right-4 z-50 px-4 py-2 rounded-md shadow-sm border bg-[var(--surface-1)] text-[var(--text-primary)] ${
+            toast.type === 'success' ? 'border-[var(--success-color)]' : 'border-[var(--error-color)]'
+          }`}
+        >
+          <span className={`${toast.type === 'success' ? 'text-[var(--success-color)]' : 'text-[var(--error-color)]'} font-semibold mr-2`}>
+            {toast.type === 'success' ? 'Success' : 'Error'}
+          </span>
+          {toast.text}
+        </div>
       )}
     </div>
   )

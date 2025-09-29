@@ -68,12 +68,12 @@ export default function Login() {
   }
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen">
       <div className="section">
         <div className="max-w-md mx-auto">
         {/* Header */}
         <div className="text-center mb-8">
-            <h1 className="text-2xl font-semibold text-gray-900">
+            <h1 className="text-2xl font-semibold text-[var(--text-primary)]">
               Sign in
             </h1>
           </div>
@@ -153,7 +153,7 @@ export default function Login() {
                 Forgot your password?
               </Link>
             </div>
-            <div className="text-sm text-gray-600">
+            <div className="text-sm text-[var(--text-secondary)]">
               Don't have an account?{' '}
               <Link
                 href="/signup"

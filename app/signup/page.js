@@ -88,12 +88,12 @@ export default function Signup() {
   const passwordStrength = getPasswordStrength(password)
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen">
       <div className="section">
         <div className="max-w-md mx-auto">
           {/* Header */}
           <div className="text-center mb-8">
-            <h1 className="text-2xl font-semibold text-gray-900">Create account</h1>
+            <h1 className="text-2xl font-semibold text-[var(--text-primary)]">Create account</h1>
           </div>
 
           {/* Signup Form */}
@@ -172,7 +172,7 @@ export default function Signup() {
 
           {/* Footer Links */}
           <div className="text-center space-y-4">
-            <div className="text-base text-gray-600">
+            <div className="text-base text-[var(--text-secondary)]">
               Already have an account?{' '}
               <Link
                 href="/login"

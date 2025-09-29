@@ -17,7 +17,8 @@ export default function Button({
     secondary: 'btn-secondary',
     outline: 'btn-outline',
     ghost: 'btn-ghost',
-    danger: 'bg-red-500 text-white hover:bg-red-600',
+    success: 'bg-[var(--success-color)] text-white hover:opacity-90',
+    danger: 'bg-[var(--error-color)] text-white hover:opacity-90',
   }
 
   const sizeClasses = {
